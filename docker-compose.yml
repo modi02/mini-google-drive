@@ -1,0 +1,68 @@
+version: '3.8'
+
+networks:
+  distributed-net:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/24
+
+volumes:
+  node1-data:
+  node2-data:
+
+services:
+
+  storage-node-1:
+    build: ./storage-node
+    container_name: storage-node-1
+    networks:
+      distributed-net:
+        ipv4_address: 172.20.0.3
+    environment:
+      - SERVER_PORT=8081
+      - NODE_ID=node-1
+      - STORAGE_PATH=/app/storage-data
+    volumes:
+      - node1-data:/app/storage-data
+    ports:
+      - '8081:8081'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  storage-node-2:
+    build: ./storage-node
+    container_name: storage-node-2
+    networks:
+      distributed-net:
+        ipv4_address: 172.20.0.4
+    environment:
+      - SERVER_PORT=8081
+      - NODE_ID=node-2
+      - STORAGE_PATH=/app/storage-data
+    volumes:
+      - node2-data:/app/storage-data
+    ports:
+      - '8082:8081'
+    healthcheck:
+      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+
+  master-server:
+    build: ./master-server
+    container_name: master-server
+    networks:
+      distributed-net:
+        ipv4_address: 172.20.0.2
+    environment:
+      - STORAGE_NODES=http://storage-node-1:8081,http://storage-node-2:8081
+    depends_on:
+      - storage-node-1
+      - storage-node-2
+    ports:
+      - '8080:8080'

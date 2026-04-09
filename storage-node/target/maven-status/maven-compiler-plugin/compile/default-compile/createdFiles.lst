@@ -1,0 +1,3 @@
+com/minicloud/storagenode/controller/FileController.class
+com/minicloud/storagenode/StorageNodeApplication.class
+com/minicloud/storagenode/service/FileStorageService.class

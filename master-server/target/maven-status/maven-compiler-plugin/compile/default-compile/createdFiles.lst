@@ -1,0 +1,8 @@
+com/minicloud/master/service/ConsistentHashService.class
+com/minicloud/master/controller/MasterController.class
+com/minicloud/master/model/FileMetadata.class
+com/minicloud/master/service/MasterService.class
+com/minicloud/master/MasterServerApplication.class
+com/minicloud/master/model/StorageNode.class
+com/minicloud/master/service/MasterService$1.class
+com/minicloud/master/service/NodeHealthService.class
