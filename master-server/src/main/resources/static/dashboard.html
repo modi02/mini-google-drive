@@ -51,7 +51,7 @@
       margin-bottom: 28px;
     }
     .stat-card {
-      flex: 1; min-width: 160px;
+      flex: 1; min-width: 140px;
       background: #1e2130;
       border: 1px solid #2d3148;
       border-radius: 12px;
@@ -59,14 +59,93 @@
     }
     .stat-card .label { font-size: 12px; color: #64748b; text-transform: uppercase; letter-spacing: .05em; }
     .stat-card .value { font-size: 32px; font-weight: 700; margin-top: 6px; }
-    .stat-card .value.green { color: #22c55e; }
-    .stat-card .value.blue  { color: #4f8ef7; }
-    .stat-card .value.amber { color: #f59e0b; }
+    .stat-card .value.green  { color: #22c55e; }
+    .stat-card .value.blue   { color: #4f8ef7; }
+    .stat-card .value.amber  { color: #f59e0b; }
+    .stat-card .value.purple { color: #a78bfa; }
+    .stat-card .value.red    { color: #f87171; }
 
     h2 { font-size: 15px; font-weight: 600; margin-bottom: 14px; color: #94a3b8; letter-spacing: .04em; text-transform: uppercase; }
 
-    /* ── Node Cards ── */
-    #node-grid {
+    /* ── Master Nodes (Leader Election) ── */
+    #master-grid {
+      display: flex; gap: 16px; flex-wrap: wrap;
+      margin-bottom: 36px;
+    }
+    .master-card {
+      flex: 1; min-width: 260px;
+      background: #1e2130;
+      border-radius: 14px;
+      padding: 20px 24px;
+      border: 2px solid transparent;
+      transition: border-color .3s, box-shadow .3s;
+      position: relative;
+      overflow: hidden;
+    }
+    .master-card.leader {
+      border-color: #4f8ef755;
+      box-shadow: 0 0 28px #4f8ef722;
+    }
+    .master-card.backup {
+      border-color: #a78bfa33;
+      box-shadow: 0 0 20px #a78bfa11;
+    }
+    .master-card.dead {
+      border-color: #ef444433;
+      box-shadow: 0 0 20px #ef444418;
+      opacity: 0.7;
+    }
+    .master-card-bg {
+      position: absolute; top: -20px; right: -20px;
+      font-size: 80px; opacity: 0.04; pointer-events: none;
+    }
+    .master-header { display: flex; align-items: center; gap: 10px; margin-bottom: 16px; }
+    .master-name { font-weight: 700; font-size: 16px; }
+    .master-url  { font-size: 11px; color: #475569; font-family: monospace; margin-top: 2px; }
+    .role-badge {
+      margin-left: auto;
+      font-size: 11px; font-weight: 700;
+      padding: 4px 12px;
+      border-radius: 99px;
+      text-transform: uppercase;
+      letter-spacing: .05em;
+    }
+    .role-badge.leader { background: #1e3a5f; color: #60a5fa; }
+    .role-badge.backup { background: #2e1a5e; color: #c4b5fd; }
+    .role-badge.dead   { background: #450a0a; color: #f87171; }
+    .master-metrics { display: flex; gap: 24px; flex-wrap: wrap; }
+    .master-metric { font-size: 12px; color: #64748b; }
+    .master-metric span { display: block; font-size: 18px; font-weight: 700; color: #e2e8f0; margin-bottom: 2px; }
+
+    /* ── Server Nodes ── */
+    #server-grid {
+      display: flex; gap: 16px; flex-wrap: wrap;
+      margin-bottom: 36px;
+    }
+    .server-card {
+      flex: 1; min-width: 220px;
+      background: #1e2130;
+      border-radius: 14px;
+      padding: 20px 24px;
+      border: 2px solid transparent;
+      transition: border-color .3s, box-shadow .3s;
+    }
+    .server-card.alive { border-color: #22c55e33; box-shadow: 0 0 20px #22c55e18; }
+    .server-card.dead  { border-color: #ef444433; box-shadow: 0 0 20px #ef444418; opacity: 0.7; }
+    .server-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
+    .server-name { font-weight: 600; font-size: 15px; }
+    .server-url  { font-size: 12px; color: #475569; margin-top: 2px; font-family: monospace; }
+    .node-badge {
+      font-size: 11px; font-weight: 700;
+      padding: 3px 10px;
+      border-radius: 99px;
+      text-transform: uppercase;
+    }
+    .node-badge.alive { background: #14532d; color: #4ade80; }
+    .node-badge.dead  { background: #450a0a; color: #f87171; }
+
+    /* ── Storage Nodes ── */
+    #storage-grid {
       display: flex; gap: 16px; flex-wrap: wrap;
       margin-bottom: 36px;
     }
@@ -80,25 +159,59 @@
     }
     .node-card.alive  { border-color: #22c55e33; box-shadow: 0 0 20px #22c55e18; }
     .node-card.dead   { border-color: #ef444433; box-shadow: 0 0 20px #ef444418; }
-
     .node-header { display: flex; align-items: center; gap: 10px; margin-bottom: 14px; }
-    .node-badge {
-      font-size: 11px; font-weight: 700;
-      padding: 3px 10px;
-      border-radius: 99px;
-      text-transform: uppercase;
-    }
-    .node-badge.alive { background: #14532d; color: #4ade80; }
-    .node-badge.dead  { background: #450a0a; color: #f87171; }
-
     .node-name { font-weight: 600; font-size: 15px; }
     .node-url  { font-size: 12px; color: #475569; margin-top: 2px; font-family: monospace; }
-
     .node-metrics { display: flex; gap: 20px; margin-top: 10px; }
     .metric { font-size: 12px; color: #64748b; }
     .metric span { display: block; font-size: 20px; font-weight: 700; color: #e2e8f0; }
-
     .status-icon { font-size: 28px; margin-left: auto; }
+
+    /* ── Architecture Flow ── */
+    .arch-section {
+      background: #1e2130;
+      border: 1px solid #2d3148;
+      border-radius: 14px;
+      padding: 24px;
+      margin-bottom: 36px;
+    }
+    .arch-flow {
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      gap: 0;
+      flex-wrap: wrap;
+      row-gap: 16px;
+    }
+    .arch-node {
+      background: #161825;
+      border: 1px solid #2d3148;
+      border-radius: 10px;
+      padding: 12px 18px;
+      text-align: center;
+      min-width: 110px;
+    }
+    .arch-node .arch-label { font-size: 11px; color: #64748b; text-transform: uppercase; letter-spacing: .05em; margin-bottom: 4px; }
+    .arch-node .arch-name  { font-size: 13px; font-weight: 600; }
+    .arch-node.client  { border-color: #4f8ef755; }
+    .arch-node.master  { border-color: #4f8ef755; background: #1a2540; }
+    .arch-node.master.active { border-color: #4f8ef7; box-shadow: 0 0 16px #4f8ef733; }
+    .arch-node.server  { border-color: #a78bfa55; background: #1e1a30; }
+    .arch-node.storage { border-color: #22c55e55; background: #14231a; }
+    .arch-node.db      { border-color: #f59e0b55; background: #231e10; }
+    .arch-arrow {
+      color: #2d3148;
+      font-size: 20px;
+      padding: 0 8px;
+      flex-shrink: 0;
+    }
+    .arch-group {
+      display: flex; flex-direction: column; gap: 8px; align-items: center;
+    }
+    .arch-group-label {
+      font-size: 10px; color: #475569; text-transform: uppercase; letter-spacing: .05em;
+      text-align: center; margin-bottom: 2px;
+    }
 
     /* ── File Table ── */
     .table-wrap {
@@ -106,6 +219,7 @@
       border: 1px solid #2d3148;
       border-radius: 14px;
       overflow: hidden;
+      margin-bottom: 36px;
     }
     table { width: 100%; border-collapse: collapse; }
     thead th {
@@ -122,7 +236,6 @@
     tbody tr:last-child { border-bottom: none; }
     tbody tr:hover { background: #232740; }
     tbody td { padding: 13px 18px; font-size: 13px; }
-
     .file-name { font-family: monospace; color: #93c5fd; font-weight: 500; }
     .replica-pill {
       display: inline-block;
@@ -134,17 +247,35 @@
       margin-right: 5px;
       margin-bottom: 3px;
     }
-    .replica-pill.dead {
-      background: #450a0a;
-      color: #f87171;
-      text-decoration: line-through;
-    }
     .size-badge { color: #94a3b8; font-size: 12px; }
     .time-badge { color: #64748b; font-size: 11px; font-family: monospace; }
     .empty-msg { text-align: center; padding: 40px; color: #475569; }
-
-    /* Scroll */
     .table-wrap { max-height: 420px; overflow-y: auto; }
+
+    /* ── Election Log ── */
+    .log-section {
+      background: #1e2130;
+      border: 1px solid #2d3148;
+      border-radius: 14px;
+      padding: 20px 24px;
+      margin-bottom: 36px;
+    }
+    .log-section h2 { margin-bottom: 12px; }
+    #election-log {
+      font-family: monospace;
+      font-size: 12px;
+      color: #64748b;
+      max-height: 160px;
+      overflow-y: auto;
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .log-entry { padding: 4px 0; border-bottom: 1px solid #1a1d2e; }
+    .log-entry.event { color: #f59e0b; }
+    .log-entry.ok    { color: #4ade80; }
+    .log-entry.info  { color: #94a3b8; }
+
     ::-webkit-scrollbar { width: 6px; }
     ::-webkit-scrollbar-track { background: #0f1117; }
     ::-webkit-scrollbar-thumb { background: #2d3148; border-radius: 3px; }
@@ -167,12 +298,16 @@
 <!-- Summary bar -->
 <div class="summary-bar">
   <div class="stat-card">
-    <div class="label">Healthy Nodes</div>
-    <div class="value green" id="stat-alive">—</div>
+    <div class="label">Leader</div>
+    <div class="value blue" id="stat-leader">—</div>
   </div>
   <div class="stat-card">
-    <div class="label">Total Nodes</div>
-    <div class="value blue" id="stat-total">—</div>
+    <div class="label">Server Nodes</div>
+    <div class="value green" id="stat-server-alive">—</div>
+  </div>
+  <div class="stat-card">
+    <div class="label">Storage Nodes</div>
+    <div class="value green" id="stat-storage-alive">—</div>
   </div>
   <div class="stat-card">
     <div class="label">Files Stored</div>
@@ -184,126 +319,318 @@
   </div>
 </div>
 
-<!-- Node cards -->
-<h2>Storage Nodes</h2>
-<div id="node-grid">Loading nodes…</div>
+<!-- Architecture diagram -->
+<h2>Live Architecture</h2>
+<div class="arch-section">
+  <div class="arch-flow">
+    <div class="arch-node client">
+      <div class="arch-label">Client</div>
+      <div class="arch-name">Postman / curl</div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-group">
+      <div class="arch-group-label">Layer 1 — Leader Election</div>
+      <div style="display:flex;gap:8px">
+        <div class="arch-node master" id="arch-master-1">
+          <div class="arch-label">Master 1</div>
+          <div class="arch-name" id="arch-master-1-role">:8080</div>
+        </div>
+        <div class="arch-node master" id="arch-master-2">
+          <div class="arch-label">Master 2</div>
+          <div class="arch-name" id="arch-master-2-role">:8090</div>
+        </div>
+      </div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-group">
+      <div class="arch-group-label">Layer 2 — Round Robin</div>
+      <div style="display:flex;gap:8px">
+        <div class="arch-node server" id="arch-server-1">
+          <div class="arch-label">Server 1</div>
+          <div class="arch-name">:8081</div>
+        </div>
+        <div class="arch-node server" id="arch-server-2">
+          <div class="arch-label">Server 2</div>
+          <div class="arch-name">:8082</div>
+        </div>
+      </div>
+    </div>
+    <div class="arch-arrow">→</div>
+    <div class="arch-group">
+      <div class="arch-group-label">Layer 3 — Storage</div>
+      <div style="display:flex;gap:8px">
+        <div class="arch-node storage" id="arch-storage-1">
+          <div class="arch-label">Storage 1</div>
+          <div class="arch-name">:8091</div>
+        </div>
+        <div class="arch-node storage" id="arch-storage-2">
+          <div class="arch-label">Storage 2</div>
+          <div class="arch-name">:8092</div>
+        </div>
+      </div>
+    </div>
+    <div class="arch-arrow">↕</div>
+    <div class="arch-node db">
+      <div class="arch-label">Shared DB</div>
+      <div class="arch-name">MySQL :3306</div>
+    </div>
+  </div>
+</div>
+
+<!-- Master nodes -->
+<h2>Layer 1 — Master Nodes (Leader Election)</h2>
+<div id="master-grid">Loading…</div>
+
+<!-- Server nodes -->
+<h2>Layer 2 — Server Nodes (Round Robin)</h2>
+<div id="server-grid">Loading…</div>
+
+<!-- Storage nodes -->
+<h2>Layer 3 — Storage Nodes</h2>
+<div id="storage-grid">Loading nodes…</div>
+
+<!-- Election log -->
+<div class="log-section">
+  <h2>Election Event Log</h2>
+  <div id="election-log">
+    <div class="log-entry info">Waiting for data…</div>
+  </div>
+</div>
 
 <!-- File table -->
-<h2>File Registry</h2>
+<h2>File Registry (MySQL)</h2>
 <div class="table-wrap">
   <table>
     <thead>
       <tr>
         <th>Filename</th>
         <th>Size</th>
-        <th>Replicas</th>
+        <th>Storage Nodes</th>
         <th>Uploaded At</th>
+        <th>Status</th>
       </tr>
     </thead>
     <tbody id="file-table-body">
-      <tr><td colspan="4" class="empty-msg">Loading…</td></tr>
+      <tr><td colspan="5" class="empty-msg">Loading…</td></tr>
     </tbody>
   </table>
 </div>
 
 <script>
-  // Track alive nodes by ID for replica pill colouring
-  let aliveNodes = new Set();
+  let prevLeader = null;
+  const logEntries = [];
+
+  function addLog(msg, type = 'info') {
+    const time = new Date().toLocaleTimeString();
+    logEntries.unshift({ msg, type, time });
+    if (logEntries.length > 20) logEntries.pop();
+    const el = document.getElementById('election-log');
+    el.innerHTML = logEntries.map(e =>
+      `<div class="log-entry ${e.type}">[${e.time}] ${e.msg}</div>`
+    ).join('');
+  }
 
   function formatBytes(b) {
+    if (!b) return '—';
     if (b < 1024) return b + ' B';
     if (b < 1048576) return (b / 1024).toFixed(1) + ' KB';
     return (b / 1048576).toFixed(2) + ' MB';
   }
 
   function formatTime(iso) {
+    if (!iso) return '—';
     return new Date(iso).toLocaleTimeString();
   }
 
-  async function fetchNodes() {
-    const res = await fetch('/nodes/status');
-    if (!res.ok) throw new Error('nodes/status ' + res.status);
-    return res.json();
+  async function safeFetch(url) {
+    try {
+      const res = await fetch(url);
+      if (!res.ok) return null;
+      return await res.json();
+    } catch { return null; }
   }
 
-  async function fetchFiles() {
-    const res = await fetch('/files/list');
-    if (!res.ok) throw new Error('files/list ' + res.status);
-    return res.json();
+  async function refresh() {
+    // Fetch master status from both masters
+    const [m1, m2, status, files] = await Promise.all([
+      safeFetch('/master/health'),
+      safeFetch('http://localhost:8090/master/health'),
+      safeFetch('/master/status'),
+      safeFetch('/master/files')
+    ]);
+
+    // ── Master nodes ──
+    renderMasters(m1, m2);
+
+    // ── Server + Storage nodes from status ──
+    if (status) {
+      renderServerNodes(status.aliveServerNodes || [], status.allServerNodes || []);
+      renderStorageNodes(status.storageNodes || []);
+    }
+
+    // ── Files ──
+    if (files) renderFiles(files);
+
+    document.getElementById('last-update').textContent =
+      'Updated ' + new Date().toLocaleTimeString();
   }
 
-  function renderNodes(nodes) {
-    aliveNodes = new Set(nodes.filter(n => n.alive).map(n => n.nodeId));
-    const alive = nodes.filter(n => n.alive).length;
+  function renderMasters(m1, m2) {
+    const masters = [
+      { name: 'Master 1', port: '8080', url: 'http://localhost:8080', data: m1 },
+      { name: 'Master 2', port: '8090', url: 'http://localhost:8090', data: m2 },
+    ];
 
-    document.getElementById('stat-alive').textContent = alive;
-    document.getElementById('stat-total').textContent = nodes.length;
+    // Detect leader change
+    const currentLeader = m1?.isLeader ? 'master-1' : m2?.isLeader ? 'master-2' : null;
+    if (prevLeader && currentLeader && currentLeader !== prevLeader) {
+      addLog(`⚡ LEADER CHANGED: ${prevLeader} → ${currentLeader}`, 'event');
+    }
+    if (!m1 && prevLeader === 'master-1') {
+      addLog('🔴 master-1 went DOWN — master-2 should promote', 'event');
+    }
+    if (m1 && !m1.isLeader && prevLeader === 'master-1') {
+      addLog('✅ master-1 back UP as BACKUP', 'ok');
+    }
+    prevLeader = currentLeader;
 
-    const grid = document.getElementById('node-grid');
-    grid.innerHTML = nodes.map(n => `
+    // Update summary
+    const leaderName = m1?.isLeader ? 'M1 :8080' : m2?.isLeader ? 'M2 :8090' : 'None';
+    document.getElementById('stat-leader').textContent = leaderName;
+
+    // Update arch diagram
+    const a1 = document.getElementById('arch-master-1');
+    const a2 = document.getElementById('arch-master-2');
+    if (m1) {
+      a1.classList.toggle('active', m1.isLeader);
+      document.getElementById('arch-master-1-role').textContent = m1.isLeader ? '👑 LEADER' : 'backup';
+    } else {
+      document.getElementById('arch-master-1-role').textContent = '❌ DOWN';
+    }
+    if (m2) {
+      a2.classList.toggle('active', m2.isLeader);
+      document.getElementById('arch-master-2-role').textContent = m2.isLeader ? '👑 LEADER' : 'backup';
+    } else {
+      document.getElementById('arch-master-2-role').textContent = '❌ DOWN';
+    }
+
+    const grid = document.getElementById('master-grid');
+    grid.innerHTML = masters.map(m => {
+      const alive = !!m.data;
+      const isLeader = m.data?.isLeader;
+      const roleClass = !alive ? 'dead' : isLeader ? 'leader' : 'backup';
+      const roleLabel = !alive ? 'DOWN' : isLeader ? '👑 Primary Leader' : 'Backup';
+      const badgeClass = !alive ? 'dead' : isLeader ? 'leader' : 'backup';
+      return `
+        <div class="master-card ${roleClass}">
+          <div class="master-card-bg">${isLeader ? '👑' : '🔄'}</div>
+          <div class="master-header">
+            <div>
+              <div class="master-name">${m.name}</div>
+              <div class="master-url">${m.url}</div>
+            </div>
+            <span class="role-badge ${badgeClass}">${roleLabel}</span>
+          </div>
+          <div class="master-metrics">
+            <div class="master-metric">
+              <span>${alive ? (m.data.isLeader ? 'YES' : 'NO') : '—'}</span>Is Leader
+            </div>
+            <div class="master-metric">
+              <span>${alive ? (m.data.peerAlive ? '🟢 UP' : '🔴 DOWN') : '—'}</span>Peer Status
+            </div>
+            <div class="master-metric">
+              <span>${alive ? '🟢 UP' : '🔴 DOWN'}</span>Self Status
+            </div>
+          </div>
+        </div>`;
+    }).join('');
+  }
+
+  function renderServerNodes(alive, all) {
+    document.getElementById('stat-server-alive').textContent =
+      alive.length + '/' + (all.length || 2);
+
+    // Update arch
+    const s1alive = alive.some(u => u.includes('8081'));
+    const s2alive = alive.some(u => u.includes('8082'));
+    document.getElementById('arch-server-1').style.opacity = s1alive ? '1' : '0.4';
+    document.getElementById('arch-server-2').style.opacity = s2alive ? '1' : '0.4';
+
+    const nodes = [
+      { name: 'Server Node 1', url: 'http://server-node-1:8081', port: '8081', isAlive: s1alive },
+      { name: 'Server Node 2', url: 'http://server-node-2:8082', port: '8082', isAlive: s2alive },
+    ];
+
+    document.getElementById('server-grid').innerHTML = nodes.map(n => `
+      <div class="server-card ${n.isAlive ? 'alive' : 'dead'}">
+        <div class="server-header">
+          <div>
+            <div class="server-name">${n.name}</div>
+            <div class="server-url">${n.url}</div>
+          </div>
+          <div class="status-icon" style="margin-left:auto">${n.isAlive ? '🟢' : '🔴'}</div>
+        </div>
+        <span class="node-badge ${n.isAlive ? 'alive' : 'dead'}">${n.isAlive ? 'UP' : 'DOWN'}</span>
+        <div class="node-metrics" style="margin-top:10px">
+          <div class="metric"><span>MySQL</span>Shared DB</div>
+          <div class="metric"><span>Port ${n.port}</span>Address</div>
+        </div>
+      </div>`).join('');
+  }
+
+  function renderStorageNodes(nodes) {
+    const aliveCount = nodes.filter(n => n.alive).length;
+    document.getElementById('stat-storage-alive').textContent =
+      aliveCount + '/' + nodes.length;
+
+    // Update arch
+    if (nodes.length >= 2) {
+      document.getElementById('arch-storage-1').style.opacity = nodes[0]?.alive ? '1' : '0.4';
+      document.getElementById('arch-storage-2').style.opacity = nodes[1]?.alive ? '1' : '0.4';
+    }
+
+    document.getElementById('storage-grid').innerHTML = nodes.map(n => `
       <div class="node-card ${n.alive ? 'alive' : 'dead'}">
         <div class="node-header">
           <div>
             <div class="node-name">${n.nodeId}</div>
             <div class="node-url">${n.url}</div>
           </div>
-          <div class="status-icon" style="margin-left:auto">${n.alive ? '🟢' : '🔴'}</div>
+          <div class="status-icon">${n.alive ? '🟢' : '🔴'}</div>
         </div>
         <span class="node-badge ${n.alive ? 'alive' : 'dead'}">${n.alive ? 'UP' : 'DOWN'}</span>
         <div class="node-metrics">
-          <div class="metric"><span>${n.fileCount}</span>Files</div>
+          <div class="metric"><span>${n.fileCount ?? 0}</span>Files</div>
         </div>
-      </div>
-    `).join('');
+      </div>`).join('');
   }
 
   function renderFiles(files) {
     document.getElementById('stat-files').textContent = files.length;
-
-    // compute replication health
-    if (files.length === 0) {
-      document.getElementById('stat-rep').textContent = 'N/A';
-    } else {
-      const fullyReplicated = files.filter(f =>
-        f.replicaNodes.every(r => aliveNodes.has(r))
-      ).length;
-      document.getElementById('stat-rep').textContent =
-        fullyReplicated + '/' + files.length + ' healthy';
-    }
+    document.getElementById('stat-rep').textContent = files.length > 0 ? '2x' : 'N/A';
 
     const tbody = document.getElementById('file-table-body');
-    if (files.length === 0) {
-      tbody.innerHTML = '<tr><td colspan="4" class="empty-msg">No files uploaded yet</td></tr>';
+    if (!files.length) {
+      tbody.innerHTML = '<tr><td colspan="5" class="empty-msg">No files uploaded yet</td></tr>';
       return;
     }
-
     tbody.innerHTML = files.map(f => {
-      const pills = f.replicaNodes.map(r =>
-        `<span class="replica-pill ${aliveNodes.has(r) ? '' : 'dead'}">${r}</span>`
+      const nodes = (f.storageNodes || '').split(',').filter(Boolean);
+      const pills = nodes.map(n =>
+        `<span class="replica-pill">${n.split(':').pop()}</span>`
       ).join('');
       return `
         <tr>
-          <td class="file-name">${f.filename}</td>
-          <td class="size-badge">${formatBytes(f.size)}</td>
-          <td>${pills}</td>
+          <td class="file-name">${f.fileName || f.filename || '—'}</td>
+          <td class="size-badge">${formatBytes(f.fileSize || f.size)}</td>
+          <td>${pills || '—'}</td>
           <td class="time-badge">${formatTime(f.uploadedAt)}</td>
+          <td><span class="node-badge alive">${f.status || 'ACTIVE'}</span></td>
         </tr>`;
     }).join('');
   }
 
-  async function refresh() {
-    try {
-      const [nodes, files] = await Promise.all([fetchNodes(), fetchFiles()]);
-      renderNodes(nodes);
-      renderFiles(files);
-      document.getElementById('last-update').textContent =
-        'Updated ' + new Date().toLocaleTimeString();
-    } catch (e) {
-      document.getElementById('last-update').textContent = 'Error: ' + e.message;
-    }
-  }
-
-  // Initial load + poll every 3 seconds
+  addLog('Dashboard started', 'ok');
   refresh();
   setInterval(refresh, 3000);
 </script>
