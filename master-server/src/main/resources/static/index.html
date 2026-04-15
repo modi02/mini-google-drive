@@ -266,7 +266,7 @@ async function doUpload(){
   let prog=0;const tick=setInterval(()=>{prog=Math.min(prog+Math.random()*18,85);fill.style.width=prog+'%'},100);
   try{
     const fd=new FormData();fd.append('file',selectedFile);
-    const res=await fetch('/files/upload',{method:'POST',body:fd});
+    const res=await fetch('/master/upload',{method:'POST',body:fd});
     clearInterval(tick);fill.style.width='100%';
     if(res.ok){
       const d=await res.json();
@@ -281,13 +281,13 @@ async function doUpload(){
 
 async function downloadFile(filename){
   toast(`Downloading "${filename}"…`,'info');
-  try{const res=await fetch('/files/download/'+encodeURIComponent(filename));if(!res.ok)throw new Error('Error '+res.status);const blob=await res.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);toast(`"${filename}" saved!`,'success')}
+  try{const res=await fetch('/master/download/'+encodeURIComponent(filename));if(!res.ok)throw new Error('Error '+res.status);const blob=await res.blob();const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=filename;a.click();URL.revokeObjectURL(url);toast(`"${filename}" saved!`,'success')}
   catch(e){toast('Download failed: '+e.message,'error')}
 }
 
 async function deleteFile(filename){
   if(!confirm(`Delete "${filename}" from all nodes?`))return;
-  try{const res=await fetch('/files/delete/'+encodeURIComponent(filename),{method:'DELETE'});if(res.ok){toast(`"${filename}" deleted`,'info');refreshFiles()}else toast('Delete failed','error')}
+  try{const res=await fetch('/master/download/'+encodeURIComponent(filename),{method:'DELETE'});if(res.ok){toast(`"${filename}" deleted`,'info');refreshFiles()}else toast('Delete failed','error')}
   catch(e){toast('Error: '+e.message,'error')}
 }
 
@@ -324,8 +324,8 @@ function renderNodes(nodes){
   document.getElementById('node-status').innerHTML=nodes.map(n=>`<div class="node-row"><div class="node-left"><div class="node-dot ${n.alive?'alive':'dead'}"></div><span class="node-name">${n.nodeId}</span></div><span class="node-badge ${n.alive?'alive':'dead'}">${n.alive?'UP':'DOWN'}</span></div>`).join('');
 }
 
-async function refreshNodes(){try{const r=await fetch('/nodes/status');if(r.ok){allNodes=await r.json();renderNodes(allNodes)}}catch(e){}}
-async function refreshFiles(){try{const r=await fetch('/files/list');if(r.ok){allFiles=await r.json();renderFiles()}}catch(e){}}
+async function refreshNodes(){try{const r=await fetch('/master/status');if(r.ok){allNodes=await r.json();renderNodes(allNodes)}}catch(e){}}
+async function refreshFiles(){try{const r=await fetch('/master/files');if(r.ok){allFiles=await r.json();renderFiles()}}catch(e){}}
 async function refresh(){await refreshNodes();await refreshFiles();document.getElementById('last-update').textContent='Updated '+new Date().toLocaleTimeString()}
 refresh();setInterval(refresh,3000);
 </script>
