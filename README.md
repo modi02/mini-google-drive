@@ -1,196 +1,301 @@
 # Mini Google Drive — Distributed File Storage System
 
-A distributed file storage system inspired by how **Amazon S3**, **HDFS**, and **Dropbox** work internally. Built with Java + Spring Boot, running across isolated Docker containers with consistent hashing and automatic replication.
+> A fully distributed file storage system built for the Distributed Systems course at SVNIT Surat.
+> Implements leader election, round-robin load balancing, data replication, shared metadata, and automatic failover.
+
+![Java](https://img.shields.io/badge/Java-17-orange)
+![Spring Boot](https://img.shields.io/badge/Spring%20Boot-3.2-green)
+![Docker](https://img.shields.io/badge/Docker-Compose-blue)
+![MySQL](https://img.shields.io/badge/MySQL-8.0-blue)
+![Nginx](https://img.shields.io/badge/Nginx-1.25-009639)
 
 ---
 
-## What It Does
-
-- Files are stored across **multiple Docker containers** (simulating real distributed nodes)
-- Every file is **automatically replicated to 2 nodes** for fault tolerance
-- **Consistent hashing** deterministically routes files to the correct nodes
-- A **live dashboard** shows real-time node health and file metadata
-
----
-
-## System Architecture
+## Architecture
 
 ```
- CLIENT (Browser / Postman)
-        │
-        │ REST HTTP :8080
-        ▼
- MASTER SERVER (:8080)
-   ├── Consistent Hash Ring
-   ├── File Metadata Store
-   ├── Node Health Checks (every 10s)
-   └── Live Dashboard
-        │
-        ├──────────────────────┐
-        ▼                      ▼
- Storage Node 1 (:8081)    Storage Node 2 (:8082)
-   IP: 172.20.0.3               IP: 172.20.0.4
-   /app/storage-data             /app/storage-data
-```
-
-### Core Rules
-- **Rule 1:** Client never talks directly to storage nodes — only through Master
-- **Rule 2:** Every file is stored on exactly 2 nodes (replication factor = 2)
-- **Rule 3:** If one node dies, the other serves the file — client sees no error
-
----
-
-## Key Algorithms & Concepts
-
-### Consistent Hashing
-- `hash("filename")` → position on a ring (0 → 2³²)
-- Walk clockwise → first 2 distinct nodes = replica nodes
-- Each physical node gets **150 virtual nodes** for even distribution
-- **Deterministic:** same filename always maps to the same 2 nodes
-- **Scalable:** adding a new node only moves a fraction of files
-- Same algorithm used by **Amazon DynamoDB**, **Apache Cassandra**, and **Akamai CDN**
-
-### File Upload Flow
-1. **Client Uploads** — Browser sends `POST /files/upload` with file to Master `:8080`
-2. **Hash & Select** — Master runs `hash("filename")` on the ring → picks 2 alive nodes
-3. **Replicate** — Master forwards file bytes to both Node-1 and Node-2 via HTTP
-4. **Save Metadata** — Master stores `{"report.pdf" → ["node-1", "node-2"]}` in memory
-5. **Respond** — Client receives `{filename, size, replicatedTo: ["node-1", "node-2"]}`
-
-> **Key insight:** Client never knows which nodes store its file. The master handles all routing transparently.
-
-### Fault Tolerance
-| Scenario | Behavior |
-|----------|----------|
-| Node health check | Master pings `GET /health` on each node every 10 seconds |
-| Node failure detected | `isAlive = false` — node is skipped in routing |
-| File download with dead node | Master tries replicas in order, skips dead nodes — client sees no error |
-
----
-
-## Technology Stack
-
-| Layer | Technology | Details |
-|-------|-----------|---------|
-| Language | Java 17 | Records, sealed classes, text blocks |
-| Framework | Spring Boot 3.2 | Auto-config, embedded Tomcat, `@Scheduled` for health checks, `RestTemplate` for inter-node HTTP |
-| Algorithm | Consistent Hashing | MD5 hash ring with 150 virtual nodes per physical node |
-| Infrastructure | Docker + Compose | 3 isolated containers on a private bridge network, each with its own IP and filesystem |
-| Build Tool | Maven | Packages each Spring Boot project into a fat JAR |
-| Frontend | Vanilla JS + HTML | No React, no framework — pure HTML/CSS/JS served as static files from the master JAR |
-
-### Docker Network
-```
-Docker Bridge Network — 172.20.0.0/24
-
-master-server     → 172.20.0.2 :8080
-storage-node-1    → 172.20.0.3 :8081
-storage-node-2    → 172.20.0.4 :8081
+Client (Browser / curl)
+         |
+         ▼
+   ┌─────────────┐
+   │    Nginx    │  ← Reverse proxy. Single entry point. Auto-failover.
+   │   :80       │
+   └──────┬──────┘
+          │ routes to active master
+   ┌──────┴──────────────────────┐
+   │         Layer 1             │  LEADER ELECTION
+   │  ┌──────────┐ ┌──────────┐  │
+   │  │ Master-1 │ │ Master-2 │  │  Primary + Backup
+   │  │  :8080   │ │  :8090   │  │  Promotes in 5s on failure
+   │  └──────────┘ └──────────┘  │
+   └──────────────┬──────────────┘
+                  │ round-robin
+   ┌──────────────┴──────────────┐
+   │         Layer 2             │  ROUND ROBIN LOAD BALANCING
+   │  ┌──────────┐ ┌──────────┐  │
+   │  │ Server-1 │ │ Server-2 │  │  File logic + MySQL access
+   │  │  :8081   │ │  :8082   │  │
+   │  └──────────┘ └──────────┘  │
+   └──────────────┬──────────────┘
+                  │ replication factor = 2
+   ┌──────────────┴──────────────┐
+   │         Layer 3             │  FILE STORAGE
+   │  ┌──────────┐ ┌──────────┐  │
+   │  │Storage-1 │ │Storage-2 │  │  Actual file bytes
+   │  │  :8091   │ │  :8092   │  │
+   │  └──────────┘ └──────────┘  │
+   └─────────────────────────────┘
+          ↕
+   ┌─────────────┐
+   │    MySQL    │  ← Shared metadata. All server nodes read/write same DB.
+   │   :3306     │
+   └─────────────┘
 ```
 
 ---
 
-## Getting Started
+## Project Structure
+
+```
+mini-google-drive/
+├── master-server/                          # Spring Boot — Master nodes
+│   ├── src/main/java/com/minicloud/master/
+│   │   ├── controller/
+│   │   │   └── MasterController.java       # REST endpoints, leader check, round-robin routing
+│   │   ├── service/
+│   │   │   ├── LeaderElectionService.java  # Primary/backup election logic
+│   │   │   ├── ServerNodeRouter.java       # Round-robin across server nodes
+│   │   │   ├── ConsistentHashService.java  # Hash ring for storage node selection
+│   │   │   ├── MasterService.java          # Core master logic
+│   │   │   └── NodeHealthService.java      # Storage node health checks
+│   │   └── model/
+│   │       ├── FileMetadata.java
+│   │       └── StorageNode.java
+│   ├── src/main/resources/
+│   │   ├── static/
+│   │   │   ├── dashboard.html              # Live monitoring dashboard
+│   │   │   └── index.html                  # File upload/download web UI
+│   │   └── application.properties
+│   └── Dockerfile
+│
+├── server-node/                            # Spring Boot — NEW in Phase 2
+│   ├── src/main/java/com/minidrive/servernode/
+│   │   ├── FileController.java             # REST: /upload /download /files /health
+│   │   ├── FileService.java                # Upload with replication, download with fallback
+│   │   ├── FileMetadata.java               # JPA entity → file_metadata table
+│   │   ├── FileMetadataRepository.java     # Spring Data JPA repository
+│   │   ├── StorageNodeClient.java          # HTTP client for storage nodes
+│   │   └── ServerNodeApplication.java      # Main class
+│   ├── src/main/resources/
+│   │   └── application.properties
+│   └── Dockerfile
+│
+├── storage-node/                           # Spring Boot — File storage (Phase 1)
+│   ├── src/main/java/com/minicloud/storagenode/
+│   │   ├── controller/FileController.java  # /files/upload /files/download /health
+│   │   └── service/FileStorageService.java
+│   └── Dockerfile
+│
+├── docker-compose.yml                      # All 9 containers
+├── nginx.conf                              # Reverse proxy config
+├── init.sql                                # MySQL table creation
+└── README.md
+```
+
+---
+
+## Quick Start
 
 ### Prerequisites
-- Java 17+
-- Docker & Docker Compose
-- Maven
+- Docker Desktop running
+- Git
 
-### Run the System
+### Run Everything
 
 ```bash
-# Clone the repository
-git clone <your-repo-url>
+git clone https://github.com/modi02/mini-google-drive
 cd mini-google-drive
-
-# Build all JARs
-mvn clean package
-
-# Start all containers
-docker-compose up --build
-
-# Access the live dashboard
-open http://localhost:8080
+docker-compose build --no-cache
+docker-compose up
 ```
 
-### API Endpoints
+Wait ~60 seconds for all 9 containers to be healthy.
+
+### Open in Browser
+
+| URL | Description |
+|-----|-------------|
+| `http://localhost/` | File upload/download web UI |
+| `http://localhost/dashboard.html` | Live monitoring dashboard |
+
+---
+
+## API Reference
+
+All requests go through Nginx at `http://localhost` (port 80).
+
+### Master Endpoints
+
+| Method | Endpoint | Description |
+|--------|----------|-------------|
+| `GET` | `/master/health` | Leader status, peer alive status |
+| `GET` | `/master/status` | Full cluster: all nodes, alive lists, leader info |
+| `POST` | `/master/upload` | Upload file (multipart/form-data, field: `file`) |
+| `GET` | `/master/download/{fileName}` | Download file by name |
+| `GET` | `/master/files` | List all files from MySQL |
+
+### Example curl Commands
 
 ```bash
-# Upload a file
-POST http://localhost:8080/files/upload
+# Upload
+echo "hello world" > test.txt
+curl -X POST http://localhost/master/upload -F file=@test.txt
 
-# Download a file
-GET http://localhost:8080/files/download/{filename}
+# Download
+curl -O http://localhost/master/download/test.txt
 
-# Node health check
-GET http://localhost:{node-port}/health
+# List files
+curl http://localhost/master/files
+
+# Check cluster status
+curl http://localhost/master/status
+
+# Check individual masters
+curl http://localhost:8080/master/health   # master-1
+curl http://localhost:8090/master/health   # master-2
 ```
+
+---
+
+## Docker Services
+
+| Container | Image | Ports | IP |
+|-----------|-------|-------|----|
+| nginx | nginx:1.25-alpine | 80:80 | 172.20.0.8 |
+| master-1 | build: ./master-server | 8080:8080 | 172.20.0.2 |
+| master-2 | build: ./master-server | 8090:8080 | 172.20.0.9 |
+| server-node-1 | build: ./server-node | 8081:8081 | 172.20.0.5 |
+| server-node-2 | build: ./server-node | 8082:8082 | 172.20.0.6 |
+| storage-node-1 | build: ./storage-node | 8091:8091 | 172.20.0.3 |
+| storage-node-2 | build: ./storage-node | 8092:8092 | 172.20.0.4 |
+| mysql | mysql:8.0 | 3306:3306 | 172.20.0.10 |
 
 ---
 
 ## Fault Tolerance Demo
 
+### 1. Leader Election — Kill Primary Master
+
 ```bash
-# 1. Open dashboard — both nodes should be green
-open http://localhost:8080
+# Check current leader
+curl http://localhost:8080/master/health
+# → {"isLeader":true, "status":"UP"}
 
-# 2. Upload any file
-curl -F "file=@report.pdf" http://localhost:8080/files/upload
+# Kill primary
+docker kill master-1
 
-# 3. Kill node 1
+# Wait 6 seconds — backup promotes itself
+curl http://localhost:8090/master/health
+# → {"isLeader":true, "status":"UP"}  ← backup is now leader!
+
+# Bring primary back — it becomes backup
+docker start master-1
+curl http://localhost:8080/master/health
+# → {"isLeader":false, "status":"UP"}  ← back as backup
+```
+
+### 2. Storage Node Fault Tolerance
+
+```bash
+# Upload a file
+echo "test data" > test.txt
+curl -X POST http://localhost/master/upload -F file=@test.txt
+
+# Kill one storage node
 docker stop storage-node-1
 
-# 4. Watch the node turn RED on dashboard (within 10s)
+# Download still works — falls back to storage-node-2
+curl -O http://localhost/master/download/test.txt
+cat test.txt  # → test data
+```
 
-# 5. Download the same file — still works from node-2!
-curl http://localhost:8080/files/download/report.pdf -o downloaded.pdf
+### 3. Round Robin Load Balancing
 
-# 6. Bring node back
-docker start storage-node-1
-# Node turns green again on dashboard
+```bash
+# Upload multiple files and watch docker logs
+# Requests alternate between server-node-1 and server-node-2
+docker logs master-1 2>&1 | grep "Round robin selected"
 ```
 
 ---
 
-## CAP Theorem
+## Distributed Computing Concepts
 
-> *"A distributed system can only guarantee 2 of these 3 properties at the same time"*
+| Concept | Implementation |
+|---------|----------------|
+| **Consistent Hashing** | Storage node selection — minimizes remapping when nodes change |
+| **Data Replication** | Every file stored on all storage nodes (replication factor = 2) |
+| **Leader Election** | Simplified Raft — primary/backup masters, promotes in 5s |
+| **Fault Tolerance** | Download falls back to replica if storage node is down |
+| **Load Balancing** | Round-robin across server nodes using `AtomicInteger` |
+| **Shared State** | MySQL as distributed metadata store — all nodes in sync |
+| **Health Monitoring** | Periodic pings every 5-10s, automatic alive-list maintenance |
+| **Reverse Proxy** | Nginx — single entry point, transparent master failover |
+| **CAP Theorem** | AP system — Available + Partition Tolerant |
+| **Eventual Consistency** | MySQL metadata may briefly lag under high load |
 
-**This system is AP (Availability + Partition Tolerance):**
-- We serve files from healthy replicas even when a node is partitioned
-- We do **not** block waiting for consistency
+---
 
-| System | Type |
-|--------|------|
-| **Mini Google Drive** | AP |
-| Cassandra | AP |
-| HBase | CP |
-| MongoDB | CP |
+## Database Schema
+
+```sql
+-- File metadata (one row per uploaded file)
+CREATE TABLE file_metadata (
+    id           BIGINT AUTO_INCREMENT PRIMARY KEY,
+    file_name    VARCHAR(255) NOT NULL,
+    file_size    BIGINT NOT NULL,
+    content_type VARCHAR(100),
+    checksum     VARCHAR(64),
+    storage_nodes VARCHAR(500),   -- "http://storage-node-1:8091,http://storage-node-2:8092"
+    uploaded_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    status       VARCHAR(20) DEFAULT 'ACTIVE'
+);
+
+-- Server node registry
+CREATE TABLE server_nodes (
+    id             BIGINT AUTO_INCREMENT PRIMARY KEY,
+    node_url       VARCHAR(255) NOT NULL UNIQUE,
+    status         VARCHAR(20) DEFAULT 'UP',
+    last_heartbeat TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
+    registered_at  TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
+```
+
+---
+
+## Phase Comparison
+
+| Feature | Phase 1 | Phase 2 |
+|---------|---------|---------|
+| Master nodes | 1 (SPOF) | 2 (leader election) |
+| Metadata storage | In-memory HashMap | Shared MySQL |
+| Middle layer | None | Server nodes x2 |
+| Entry point | Direct :8080 | Nginx :80 |
+| Master failover | Manual | Automatic (5s) |
+| Containers | 3 | 9 |
+| File persistence across restart
+| Multi-node consistency
 
 ---
 
 ## Known Limitations
 
-| Limitation | Current State | Future Fix |
-|-----------|--------------|------------|
-| **In-Memory Metadata** | Master stores filename→nodes in a `HashMap`. Restarting the master loses all file location data. | Persist metadata to PostgreSQL, Redis, or Zookeeper |
-| **Master is SPOF** | If the master goes down, no uploads or downloads work at all. | Master replication with leader election using Raft or Zookeeper |
-| **No File Chunking** | Large files are stored whole. Real HDFS splits files into 128MB blocks. | Split files into blocks at upload, reassemble on download |
-| **No Authentication** | Anyone who can reach port 8080 can upload, download, or delete any file. | JWT-based auth, user sessions, per-file access control lists |
+- **MySQL SPOF** — MySQL itself has no replication. Production fix: MySQL Galera Cluster or etcd
+- **Split-brain window** — 5-second window where both masters may think they are leader. Production fix: full Raft consensus
+- **No partial write recovery** — if server node crashes mid-upload, file may be partially stored
+- **Synchronous replication** — upload waits for all storage nodes. Slower but consistent
 
 ---
 
-## Inspiration
-
-This project is inspired by the internal architecture of:
-- **Amazon S3** — object storage with consistent hashing
-- **HDFS (Hadoop)** — distributed file system with block replication
-- **Dropbox** — file sync with replication and fault tolerance
-- **Amazon DynamoDB** — consistent hashing with virtual nodes
-
----
-
-## License
-
-MIT License — feel free to use this for learning and educational purposes.
+**Course:** Distributed Systems — B.Tech CSE, SVNIT Surat
+**Academic Year:** 2025-26
