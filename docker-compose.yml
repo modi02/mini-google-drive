@@ -1,68 +1,149 @@
 version: '3.8'
 
 networks:
-  distributed-net:
+  minidrive-network:
     driver: bridge
     ipam:
       config:
-        - subnet: 172.20.0.0/24
-
-volumes:
-  node1-data:
-  node2-data:
+        - subnet: 172.20.0.0/16
 
 services:
 
+  # ── MySQL ──
+  mysql:
+    image: mysql:8.0
+    container_name: mysql
+    environment:
+      MYSQL_ROOT_PASSWORD: root
+      MYSQL_DATABASE: minidrive
+    ports:
+      - "3306:3306"
+    volumes:
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+    networks:
+      minidrive-network:
+        ipv4_address: 172.20.0.10
+    healthcheck:
+      test: ["CMD", "mysqladmin", "ping", "-h", "localhost", "-uroot", "-proot"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  # ── Storage Node 1 ──
   storage-node-1:
     build: ./storage-node
     container_name: storage-node-1
-    networks:
-      distributed-net:
-        ipv4_address: 172.20.0.3
-    environment:
-      - SERVER_PORT=8081
-      - NODE_ID=node-1
-      - STORAGE_PATH=/app/storage-data
-    volumes:
-      - node1-data:/app/storage-data
     ports:
-      - '8081:8081'
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
+      - "8091:8091"
+    environment:
+      - SERVER_PORT=8091
+    networks:
+      minidrive-network:
+        ipv4_address: 172.20.0.3
 
+  # ── Storage Node 2 ──
   storage-node-2:
     build: ./storage-node
     container_name: storage-node-2
+    ports:
+      - "8092:8092"
+    environment:
+      - SERVER_PORT=8092
     networks:
-      distributed-net:
+      minidrive-network:
         ipv4_address: 172.20.0.4
+
+  # ── Server Node 1 ──
+  server-node-1:
+    build: ./server-node
+    container_name: server-node-1
+    ports:
+      - "8081:8081"
     environment:
       - SERVER_PORT=8081
-      - NODE_ID=node-2
-      - STORAGE_PATH=/app/storage-data
-    volumes:
-      - node2-data:/app/storage-data
-    ports:
-      - '8082:8081'
-    healthcheck:
-      test: ["CMD", "curl", "-f", "http://localhost:8081/health"]
-      interval: 10s
-      timeout: 5s
-      retries: 3
-
-  master-server:
-    build: ./master-server
-    container_name: master-server
-    networks:
-      distributed-net:
-        ipv4_address: 172.20.0.2
-    environment:
-      - STORAGE_NODES=http://storage-node-1:8081,http://storage-node-2:8081
+      - NODE_SELF_URL=http://server-node-1:8081
+      - STORAGE_NODES=http://storage-node-1:8091,http://storage-node-2:8092
     depends_on:
-      - storage-node-1
-      - storage-node-2
+      mysql:
+        condition: service_healthy
+      storage-node-1:
+        condition: service_started
+      storage-node-2:
+        condition: service_started
+    networks:
+      minidrive-network:
+        ipv4_address: 172.20.0.5
+
+  # ── Server Node 2 ──
+  server-node-2:
+    build: ./server-node
+    container_name: server-node-2
     ports:
-      - '8080:8080'
+      - "8082:8082"
+    environment:
+      - SERVER_PORT=8082
+      - NODE_SELF_URL=http://server-node-2:8082
+      - STORAGE_NODES=http://storage-node-1:8091,http://storage-node-2:8092
+    depends_on:
+      mysql:
+        condition: service_healthy
+      storage-node-1:
+        condition: service_started
+      storage-node-2:
+        condition: service_started
+    networks:
+      minidrive-network:
+        ipv4_address: 172.20.0.6
+
+  # ── Master 1 (Primary Leader) ──
+  master-1:
+    build: ./master-server
+    container_name: master-1
+    ports:
+      - "8080:8080"
+    environment:
+      - SERVER_PORT=8080
+      - MASTER_SELF_URL=http://master-1:8080
+      - MASTER_PEER_URL=http://master-2:8090
+      - SERVER_NODES=http://server-node-1:8081,http://server-node-2:8082
+      - STORAGE_NODES=http://storage-node-1:8091,http://storage-node-2:8092
+    depends_on:
+      - server-node-1
+      - server-node-2
+    networks:
+      minidrive-network:
+        ipv4_address: 172.20.0.2
+
+  # ── Master 2 (Backup) ──
+  master-2:
+    build: ./master-server
+    container_name: master-2
+    ports:
+      - "8090:8080"
+    environment:
+      - SERVER_PORT=8080
+      - MASTER_SELF_URL=http://master-2:8090
+      - MASTER_PEER_URL=http://master-1:8080
+      - SERVER_NODES=http://server-node-1:8081,http://server-node-2:8082
+      - STORAGE_NODES=http://storage-node-1:8091,http://storage-node-2:8092
+    depends_on:
+      - server-node-1
+      - server-node-2
+    networks:
+      minidrive-network:
+        ipv4_address: 172.20.0.9
+
+  # ── Nginx (Reverse Proxy + Auto Failover) ──
+  nginx:
+    image: nginx:1.25-alpine
+    container_name: nginx
+    ports:
+      - "80:80"
+    volumes:
+      - ./nginx.conf:/etc/nginx/nginx.conf:ro
+    depends_on:
+      - master-1
+      - master-2
+    networks:
+      minidrive-network:
+        ipv4_address: 172.20.0.8
