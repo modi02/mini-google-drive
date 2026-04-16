@@ -1,4 +1,4 @@
-# Mini Google Drive — Distributed File Storage System
+# Mini Google Drive
 
 > A fully distributed file storage system built for the Distributed Systems course at SVNIT Surat.
 > Implements leader election, round-robin load balancing, data replication, shared metadata, and automatic failover.
